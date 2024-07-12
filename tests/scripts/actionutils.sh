@@ -448,6 +448,30 @@ function headexec() {
     lxc exec node-wrk0 -- sh -c "/mnt/actionutils.sh $run $@"
 }
 
+function bombard_rgw_configs() {
+    set -x
+
+    # Set random values to rgw configs
+    sudo microceph cluster config set s3_auth_use_keystone "true" --skip-restart
+    sudo microceph cluster config set rgw_keystone_url "example.url.com" --skip-restart
+    sudo microceph cluster config set rgw_keystone_admin_user "admin" --skip-restart
+    sudo microceph cluster config set rgw_keystone_admin_password "admin" --skip-restart
+    sudo microceph cluster config set rgw_keystone_admin_project "project" --skip-restart
+    sudo microceph cluster config set rgw_keystone_admin_domain "domain" --skip-restart
+    sudo microceph cluster config set rgw_keystone_service_token_enabled "true" --skip-restart
+    sudo microceph cluster config set rgw_keystone_service_token_accepted_roles "admin_role" --skip-restart
+    sudo microceph cluster config set rgw_keystone_api_version "3" --skip-restart
+    sudo microceph cluster config set rgw_keystone_accepted_roles "Member,member" --skip-restart
+    sudo microceph cluster config set rgw_keystone_accepted_admin_roles "admin_role" --skip-restart
+    sudo microceph cluster config set rgw_keystone_token_cache_size "500" --skip-restart
+    # Issue last change with daemon restart.
+    sudo microceph cluster config set rgw_keystone_verify_ssl "false" --wait
+
+    # Allow ceph to notice no OSD are present
+    sudo microceph.ceph status
+    sudo microceph.ceph health
+}
+
 run="${1}"
 shift
 
