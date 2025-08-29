@@ -1,0 +1,13 @@
+#!/bin/bash
+
+HAPROXY_PID_FILE="${SNAP_DATA}/run/ingress/haproxy.pid"
+KEEPALIVED_PID_FILE="${SNAP_DATA}/run/ingress/keepalived.pid"
+HAPROXY_CONF="${SNAP_DATA}/conf/ingress/haproxy.cfg"
+
+if [ -f "${HAPROXY_PID_FILE}" ]; then
+    haproxy -f "${HAPROXY_CONF}" -p "${HAPROXY_PID_FILE}" -sf $(cat ${HAPROXY_PID_FILE})
+fi
+
+if [ -f "${KEEPALIVED_PID_FILE}" ]; then
+    kill -HUP $(cat ${KEEPALIVED_PID_FILE})
+fi

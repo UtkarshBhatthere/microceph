@@ -1,0 +1,37 @@
+#!/bin/bash
+
+. "${SNAP}/commands/common"
+
+limits
+
+wait_for_config
+
+KEEPALIVED_CONF="${SNAP_DATA}/conf/ingress/keepalived.conf"
+HAPROXY_CONF="${SNAP_DATA}/conf/ingress/haproxy.cfg"
+KEEPALIVED_PID_FILE="${SNAP_DATA}/run/ingress/keepalived.pid"
+HAPROXY_PID_FILE="${SNAP_DATA}/run/ingress/haproxy.pid"
+
+mkdir -p "${SNAP_DATA}/run/ingress"
+mkdir -p "${SNAP_COMMON}/logs/ingress"
+
+# Start haproxy in the background
+if [ -f "${HAPROXY_CONF}" ]; then
+    haproxy -f "${HAPROXY_CONF}" -p "${HAPROXY_PID_FILE}" &
+    HAPROXY_PID=$!
+else
+    # On first start, config might not be there yet.
+    # Keepalived will fail and snapd will restart us.
+    # This is not ideal, but it's a race condition that's hard to solve here.
+    sleep 1
+fi
+
+# Clean up haproxy on exit
+trap "kill ${HAPROXY_PID} && rm -f ${KEEPALIVED_PID_FILE}" SIGINT SIGTERM EXIT
+
+# Start keepalived in the foreground
+if [ -f "${KEEPALIVED_CONF}" ]; then
+    exec keepalived --dont-fork --log-console --use-pid=${KEEPALIVED_PID_FILE} --config-file=${KEEPALIVED_CONF}
+else
+    # Same as above, config might not be ready on first start.
+    sleep 1
+fi

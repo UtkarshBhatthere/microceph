@@ -45,6 +45,22 @@ func DeleteService(ctx context.Context, c *client.Client, target string, service
 	return nil
 }
 
+// DeleteIngressService requests MicroCeph to deconfigure the ingress service on a given target node.
+func DeleteIngressService(ctx context.Context, c *client.Client, target string, svc *types.IngressService) error {
+	queryCtx, cancel := context.WithTimeout(ctx, time.Second*120)
+	defer cancel()
+
+	// Send this request to target.
+	c = c.UseTarget(target)
+
+	err := c.Query(queryCtx, "DELETE", types.ExtendedPathPrefix, api.NewURL().Path("services", "ingress"), svc, nil)
+	if err != nil {
+		return fmt.Errorf("failed deleting ingress service: %w", err)
+	}
+
+	return nil
+}
+
 // DeleteNFSService requests MicroCeph to deconfigure the NFS service on a given target node.
 func DeleteNFSService(ctx context.Context, c *client.Client, target string, svc *types.NFSService) error {
 	queryCtx, cancel := context.WithTimeout(ctx, time.Second*120)

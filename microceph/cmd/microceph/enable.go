@@ -31,6 +31,10 @@ func (c *cmdEnable) Command() *cobra.Command {
 	cmd.AddCommand(enableRbdMirrorCmd.Command())
 	cmd.AddCommand(enableFsMirrorCmd.Command())
 
+	// Enable Ingress
+	enableIngressCmd := cmdEnableIngress{common: c.common}
+	cmd.AddCommand(enableIngressCmd.Command())
+
 	// Workaround for subcommand usage errors. See: https://github.com/spf13/cobra/issues/706
 	cmd.Args = cobra.NoArgs
 	cmd.Run = func(cmd *cobra.Command, args []string) { _ = cmd.Usage() }

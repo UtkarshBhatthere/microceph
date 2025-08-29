@@ -75,6 +75,12 @@ var rgwServiceCmd = rest.Endpoint{
 	Put:    rest.EndpointAction{Handler: cmdEnableServicePut, ProxyTarget: true},
 	Delete: rest.EndpointAction{Handler: cmdRGWServiceDelete, ProxyTarget: true},
 }
+
+var ingressServiceCmd = rest.Endpoint{
+	Path:   "services/ingress",
+	Put:    rest.EndpointAction{Handler: cmdEnableServicePut, ProxyTarget: true},
+	Delete: rest.EndpointAction{Handler: cmdIngressDeleteService, ProxyTarget: true},
+}
 var rbdMirroServiceCmd = rest.Endpoint{
 	Path:   "services/rbd-mirror",
 	Put:    rest.EndpointAction{Handler: cmdEnableServicePut, ProxyTarget: true},
@@ -156,6 +162,30 @@ func cmdRestartServicePost(s state.State, r *http.Request) response.Response {
 			logger.Errorf("Failed restarting %s on host %s", service.Service, url)
 			return response.SyncResponse(false, err)
 		}
+	}
+
+	return response.EmptySyncResponse
+}
+
+// cmdIngressDeleteService handles the ingress service deletion.
+func cmdIngressDeleteService(s state.State, r *http.Request) response.Response {
+	var svc types.IngressService
+
+	err := json.NewDecoder(r.Body).Decode(&svc)
+	if err != nil {
+		logger.Errorf("failed decoding disable service request: %v", err)
+		return response.InternalError(err)
+	}
+
+	if !types.IngressServiceIDRegex.MatchString(svc.ClusterID) {
+		err := fmt.Errorf("expected service_id to be valid (regex: '%s')", types.IngressServiceIDRegex.String())
+		return response.SmartError(err)
+	}
+
+	err = ceph.DisableIngress(r.Context(), interfaces.CephState{State: s}, svc.ClusterID)
+	if err != nil {
+		logger.Errorf("Failed disabling ingress: %v", err)
+		return response.SmartError(err)
 	}
 
 	return response.EmptySyncResponse
