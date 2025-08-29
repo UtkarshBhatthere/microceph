@@ -24,6 +24,7 @@ var Servers = map[string]rest.Server{
 					mgrServiceCmd,
 					monServiceCmd,
 					nfsServiceCmd,
+					ingressServiceCmd,
 					poolsOpCmd,
 					rgwServiceCmd,
 					rbdMirroServiceCmd,

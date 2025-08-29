@@ -110,6 +110,18 @@ apps:
       - network
       - network-bind
       - process-control
+  ingress:
+    command: commands/ingress.start
+    reload-command: commands/ingress.reload
+    daemon: simple
+    install-mode: disable
+    after:
+      - daemon
+    plugs:
+      - network
+      - network-bind
+      - network-control
+      - process-control
   osd:
     command: commands/osd.start
     reload-command: commands/osd.reload
@@ -430,6 +442,12 @@ parts:
       - lib/*/libntirpc.so*
       - lib/*/liburcu-bp.so*
       - lib/*/libwbclient.so*
+
+  ingress-deps:
+    plugin: nil
+    stage-packages:
+      - keepalived
+      - haproxy
 
   strip:
     after:

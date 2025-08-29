@@ -31,6 +31,11 @@ type NFSService struct {
 	ClusterID string `json:"cluster_id" yaml:"cluster_id"`
 }
 
+// IngressService represents an ingress service that is running on a given node.
+type IngressService struct {
+	ClusterID string `json:"cluster_id"`
+}
+
 // NFSClusterIDRegex is a regex for acceptable ClusterIDs.
 var NFSClusterIDRegex = regexp.MustCompile(`^[\w][\w.-]{1,61}[\w]$`)
 

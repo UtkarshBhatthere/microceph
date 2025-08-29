@@ -30,6 +30,7 @@ configuration of metrics, alerts and other service instances.
    enable-metrics
    enable-alerts
    enable-service-instances
+   create-active-active-nfs
 
 Interacting with your cluster
 -----------------------------

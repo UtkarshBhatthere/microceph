@@ -37,3 +37,12 @@ type ServiceGroupFilter struct {
 type NFSServiceGroupConfig struct {
 	V4MinVersion uint `json:"v4_min_version"`
 }
+
+// IngressServiceGroupConfig is a struct containing a ServiceGroup's configuration for the ingress service.
+type IngressServiceGroupConfig struct {
+	VIPAddress       string `json:"vip_address"`
+	VIPInterface     string `json:"vip_interface"`
+	Target           string `json:"target"`
+	VRRPPassword     string `json:"vrrp_password"`
+	VRRPRouterID     int    `json:"vrrp_router_id"`
+}

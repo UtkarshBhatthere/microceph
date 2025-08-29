@@ -28,6 +28,7 @@ type GroupedService struct {
 	GroupID string `db:"primary=yes&sql=service_groups.group_id"`
 	Member  string `db:"primary=yes&join=core_cluster_members.name&joinon=grouped_services.member_id"`
 	Info    string
+	Config  string `db:"join=service_groups.config&joinon=grouped_services.service_group_id"`
 }
 
 // GroupedServiceFilter is a required struct for use with lxd-generate. It is used for filtering fields on database fetches.
@@ -41,4 +42,8 @@ type GroupedServiceFilter struct {
 type NFSServiceInfo struct {
 	BindAddress string `json:"bind_address"`
 	BindPort    uint   `json:"bind_port"`
+}
+
+// IngressServiceInfo is a struct containing GroupedService information for the ingress service.
+type IngressServiceInfo struct {
 }
