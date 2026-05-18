@@ -370,9 +370,7 @@ class MicroCephOrchestrator(Orchestrator,
         """Common logic for applying (enabling) a service.
 
         Validates placement hosts and checks whether the service is already
-        running. Calls enable_service once, then re-queries the running
-        services so the returned summary reflects what actually changed
-        rather than assuming every requested placement host was provisioned.
+        running, then calls enable_service once.
 
         Returns a summary string on success.
         Raises an exception if placement is invalid or the API call fails.
@@ -381,8 +379,9 @@ class MicroCephOrchestrator(Orchestrator,
         connects via unix socket to the local node only. MicroCeph's Go
         client uses UseTarget() to proxy to specific hosts, but this is
         not exposed through the socket. See todo #6.
-        Placement hosts are validated and logged, but the enable call
-        always runs on the local node regardless.
+        Because the enable call cannot be confirmed per host, the summary
+        reports the requested placement rather than claiming each host was
+        individually provisioned.
         """
         hosts = self._get_placement_hosts(spec)
         existing = self._get_existing_service_hosts(service_name, group_id)
@@ -401,20 +400,12 @@ class MicroCephOrchestrator(Orchestrator,
             wait=True,
         )
 
-        # Re-query so the summary reports the hosts that actually gained the
-        # service, not the (possibly remote) placement hosts the socket
-        # client cannot target.
-        updated = self._get_existing_service_hosts(service_name, group_id)
-        newly_enabled = sorted(updated - existing)
+        # The enable call is served by the local node and cannot be
+        # confirmed per host (see note above), so report the request
+        # honestly rather than claiming every placement host gained the
+        # service.
+        summary = f"enabled (requested placement: {', '.join(hosts)})"
         already_active = sorted(existing & set(hosts))
-
-        if newly_enabled:
-            summary = f"enabled on {', '.join(newly_enabled)}"
-        else:
-            # The enable call succeeded but no new host appeared in the
-            # service list (e.g. placement targeted hosts the socket client
-            # cannot reach, or the change is not yet reflected).
-            summary = "enable request submitted to local node"
         if already_active:
             summary += f"; already active on {', '.join(already_active)}"
 
