@@ -10,12 +10,14 @@ Suite Teardown  Teardown MicroCeph Environment
 Test Tags       multi-node    cephfs    replication    remote    lxd    slow    integration
 
 *** Variables ***
-${STR1}    ABCDEFGH
-${STR2}    IJKLMNOP
+${STR1}              ABCDEFGH
+${STR2}              IJKLMNOP
+${OUTER_VM_IMAGE}    ubuntu:26.04
 
 *** Keywords ***
 CephFS Replication Suite Setup
     Provision Multinode VM    microceph-cfsrep-vm    ${OUTER_VM_DISK}    public
+    Verify Resolute Outer VM
 
 Configure CephFS Mirroring
     [Documentation]    Creates CephFS volumes on both sites, enables directory mirroring,
@@ -115,9 +117,9 @@ Test Enable CephFS Mirror Daemon
     Enable Mirror Service On Both Sites    cephfs-mirror
 
 Test Install Ceph Common On Host
-    [Documentation]    Installs ceph-common in the outer VM so that CephFS can be mounted.
+    [Documentation]    Installs a Tentacle-compatible ceph-common client in the outer VM.
     [Tags]    cephfs    replication
-    Run In VM And Check    sudo apt install ceph-common -y    300
+    Install Ceph Client From PPA
 
 Test Configure CephFS Mirroring
     [Documentation]    Creates CephFS volumes on both sites, enables mirroring for /dir1 and /dir2,

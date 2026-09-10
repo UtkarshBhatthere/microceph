@@ -7,9 +7,13 @@ Suite Setup     NFS Tests Suite Setup
 Suite Teardown  Teardown MicroCeph Environment
 Test Tags       single-node    nfs    cephfs    lxd    integration
 
+*** Variables ***
+${OUTER_VM_IMAGE}    ubuntu:26.04
+
 *** Keywords ***
 NFS Tests Suite Setup
     Launch Outer Test VM    vm_name=microceph-nfs-vm
+    Verify Resolute Outer VM
     Copy Scripts To VM
     Copy Snap To VM
     Install And Bootstrap MicroCeph
@@ -115,7 +119,7 @@ Test Mount And Write NFS
     [Documentation]    Installs ceph-common, mounts the CephFS NFS share, writes a file,
     ...    reads it back, and unmounts.
     [Tags]    nfs    cephfs
-    Run In VM And Check    sudo apt install ceph-common -y    300
+    Install Ceph Client From PPA
     Run In VM And Check    sudo mkdir -p /mnt/nfs    10
     Run In VM And Check    sudo cp /var/snap/microceph/current/conf/ceph.conf /etc/ceph/    10
     Run In VM And Check    sudo cp /var/snap/microceph/current/conf/ceph.client.admin.keyring /etc/ceph/    10

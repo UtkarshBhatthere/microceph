@@ -630,6 +630,36 @@ class microceph_harness:
         if raise_on_timeout:
             raise AssertionError(fail_msg() if callable(fail_msg) else fail_msg)
 
+    @staticmethod
+    def _legacy_cephx_health_is_compatible(health_json):
+        """Returns whether health contains only expected legacy-CephX checks.
+
+        A Tentacle cluster with existing pre-AES256K keys is expected to report
+        one or more ``AUTH_INSECURE_*`` checks. Some expected service-key checks
+        are ``HEALTH_ERR`` while others are ``HEALTH_WARN``; their presence proves
+        that old credentials remain in use. Any other check, malformed output, or
+        no health check is not a compatible upgrade result.
+        """
+        try:
+            health = json.loads(health_json)
+        except (TypeError, ValueError):
+            return False
+
+        if health.get("status") not in ("HEALTH_WARN", "HEALTH_ERR"):
+            return False
+
+        checks = health.get("checks")
+        if not isinstance(checks, dict) or not checks:
+            return False
+
+        for name, check in checks.items():
+            if not isinstance(name, str) or not name.startswith("AUTH_INSECURE_"):
+                return False
+            if not isinstance(check, dict) or check.get("severity") not in ("HEALTH_WARN", "HEALTH_ERR"):
+                return False
+
+        return True
+
     # -----------------------------------------------------------------------
     # VM / cluster pollers (migrated from microceph_harness.resource)
     # -----------------------------------------------------------------------
@@ -685,6 +715,35 @@ class microceph_harness:
             attempts=tries,
             interval=interval,
             fail_msg=lambda: f"Cluster did not reach HEALTH_OK (last: {last_health[0] or 'no output'})",
+            on_fail=on_fail,
+        )
+
+    def wait_for_legacy_cephx_compatibility(self, node=HEAD_NODE, tries=100, interval="3s"):
+        """Waits until only expected legacy-CephX health checks remain on *node*."""
+        logger.console(f"[health] Waiting for legacy CephX compatibility ({node})...")
+        last_health = [""]
+
+        def predicate():
+            result = self.exec_in_container(
+                node, "microceph.ceph", "health", "detail", "-f", "json", timeout=30, quiet=True
+            )
+            last_health[0] = result.stdout.strip()
+            compatible = result.rc == 0 and self._legacy_cephx_health_is_compatible(last_health[0])
+            if compatible:
+                logger.console("[health] Legacy CephX checks are the only remaining health checks")
+            return compatible
+
+        def on_fail():
+            self.run_in_container_unchecked(node, "microceph.ceph health detail", 30)
+
+        self._poll_until(
+            predicate,
+            attempts=tries,
+            interval=interval,
+            fail_msg=lambda: (
+                "Cluster did not reach the expected legacy CephX-only health state "
+                f"(last: {last_health[0] or 'no output'})"
+            ),
             on_fail=on_fail,
         )
 
@@ -1185,7 +1244,8 @@ class microceph_harness:
                 continue
             self.run_in_container_unchecked(
                 node,
-                "microceph status; microceph.ceph -s; snap logs microceph -n 200",
+                "microceph status; microceph.ceph -s; snap logs microceph -n 200; "
+                "tail -n 50 /var/snap/microceph/common/logs/ganesha/ganesha.log 2>/dev/null",
                 60,
                 quiet=quiet,
             )
@@ -1236,7 +1296,7 @@ class microceph_harness:
         # snap_path only gates the skip above; the install uses the ~/microceph_*.snap
         # glob below, so the argument value is otherwise unused.
         logger.console("[install] Installing MicroCeph snap...")
-        self.run_in_vm_and_check("sudo snap install core24 || true", 120)
+        self.run_in_vm_and_check("sudo snap install core26 || true", 120)
         self.run_in_vm_and_check(f"sudo snap install --dangerous {LOCAL_SNAP_GLOB}", 600)
         for iface in SNAP_INTERFACES:
             self.run_in_vm_and_check(f"sudo snap connect microceph:{iface}", 30)
